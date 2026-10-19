@@ -1,269 +1,316 @@
 <!DOCTYPE html>
 <html lang="bn">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Virtual Try-On Stylist</title>
-    <!-- Tailwind CSS for UI Styling -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Alpine.js for Lightweight Reactive UI State -->
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <!-- Lucide Icons -->
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&display=swap');
-        body {
-            font-family: 'Hind Siliguri', sans-serif;
-            background-color: #0f172a;
-            color: #f8fafc;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Virtual Try-On Stylist</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap');
+    body {
+      font-family: 'Hind Siliguri', sans-serif;
+    }
+  </style>
 </head>
-<body class="min-h-screen flex flex-col justify-between max-w-md mx-auto shadow-2xl bg-slate-900 border-x border-slate-800"
-      x-data="tryOnApp()">
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col items-center justify-start p-4 sm:p-6">
 
-    <!-- Header Section -->
-    <header class="p-4 border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-50 flex items-center justify-between">
-        <div class="flex items-center space-x-2 space-x-reverse">
-            <div class="p-2 bg-indigo-600 rounded-xl text-white">
-                <i data-lucide="shirt" class="w-6 h-6"></i>
-            </div>
-            <div>
-                <h1 class="font-bold text-lg text-slate-100">AI Stylist</h1>
-                <p class="text-xs text-slate-400">Virtual Try-On Assistant</p>
-            </div>
+  <!-- Main Container -->
+  <div class="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-2xl relative">
+    
+    <!-- Header & Settings Button -->
+    <div class="flex items-center justify-between border-b border-slate-800 pb-4 mb-5">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-indigo-500/30">
+          <i class="fa-solid fa-shirt text-lg"></i>
         </div>
-        <button @click="openSettings = !openSettings" class="p-2 rounded-lg bg-slate-800 text-slate-300 hover:bg-slate-700 transition">
-            <i data-lucide="settings" class="w-5 h-5"></i>
-        </button>
-    </header>
-
-    <!-- Settings Modal for API Key -->
-    <div x-show="openSettings" x-cloak class="p-4 bg-slate-800 border-b border-slate-700 transition-all">
-        <label class="block text-xs font-semibold text-slate-300 mb-1">Replicate API Token:</label>
-        <div class="flex gap-2">
-            <input type="password" x-model="apiKey" placeholder="r8_..." class="flex-1 px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-sm text-slate-200 focus:outline-none focus:border-indigo-500">
-            <button @click="saveApiKey()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-sm font-medium transition">Save</button>
+        <div>
+          <h1 class="text-xl font-bold text-white tracking-wide">AI Stylist</h1>
+          <p class="text-xs text-slate-400">Virtual Try-On Assistant</p>
         </div>
-        <p class="text-[10px] text-slate-400 mt-1">replicate.com থেকে আপনার API Key সংগ্রহ করুন। এটি ব্রাউজারে সুরক্ষিত থাকবে।</p>
+      </div>
+      <button id="toggleSettings" class="w-10 h-10 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl flex items-center justify-center transition-all duration-200">
+        <i class="fa-solid fa-gear text-lg"></i>
+      </button>
     </div>
 
-    <!-- Main Content Area -->
-    <main class="p-4 flex-1 space-y-6 overflow-y-auto">
-
-        <!-- Step 1: Upload User Photo -->
-        <div class="space-y-2">
-            <label class="block text-sm font-medium text-slate-300 flex items-center justify-between">
-                <span>১. আপনার ছবি (Person Image)</span>
-                <span class="text-xs text-slate-500">*ফুল বা হাফ বডি ছবি</span>
-            </label>
-            <div class="relative border-2 border-dashed border-slate-700 hover:border-indigo-500 rounded-2xl p-4 transition text-center bg-slate-800/40">
-                <template x-if="!personImgSrc">
-                    <label class="cursor-pointer flex flex-col items-center justify-center py-4">
-                        <i data-lucide="user-plus" class="w-8 h-8 text-indigo-400 mb-2"></i>
-                        <span class="text-sm text-slate-400">আপনার ছবি সিলেক্ট করুন</span>
-                        <input type="file" accept="image/*" class="hidden" @change="handleImageUpload($event, 'person')">
-                    </label>
-                </template>
-                <template x-if="personImgSrc">
-                    <div class="relative group">
-                        <img :src="personImgSrc" class="w-full h-48 object-cover rounded-xl shadow-md">
-                        <button @click="personImgSrc = null" class="absolute top-2 right-2 p-1 bg-red-600/80 rounded-full text-white hover:bg-red-600">
-                            <i data-lucide="x" class="w-4 h-4"></i>
-                        </button>
-                    </div>
-                </template>
-            </div>
-        </div>
-
-        <!-- Step 2: Upload Garment Photo -->
-        <div class="space-y-2">
-            <label class="block text-sm font-medium text-slate-300 flex items-center justify-between">
-                <span>২. পোশাকের ছবি (Garment Image)</span>
-                <span class="text-xs text-slate-500">*যে পোশাকটি পরতে চান</span>
-            </label>
-            <div class="relative border-2 border-dashed border-slate-700 hover:border-indigo-500 rounded-2xl p-4 transition text-center bg-slate-800/40">
-                <template x-if="!garmentImgSrc">
-                    <label class="cursor-pointer flex flex-col items-center justify-center py-4">
-                        <i data-lucide="sparkles" class="w-8 h-8 text-indigo-400 mb-2"></i>
-                        <span class="text-sm text-slate-400">পোশাকের ছবি সিলেক্ট করুন</span>
-                        <input type="file" accept="image/*" class="hidden" @change="handleImageUpload($event, 'garment')">
-                    </label>
-                </template>
-                <template x-if="garmentImgSrc">
-                    <div class="relative group">
-                        <img :src="garmentImgSrc" class="w-full h-48 object-cover rounded-xl shadow-md">
-                        <button @click="garmentImgSrc = null" class="absolute top-2 right-2 p-1 bg-red-600/80 rounded-full text-white hover:bg-red-600">
-                            <i data-lucide="x" class="w-4 h-4"></i>
-                        </button>
-                    </div>
-                </template>
-            </div>
-        </div>
-
-        <!-- Category Selector -->
-        <div class="space-y-2">
-            <label class="block text-sm font-medium text-slate-300">পোশাকের ক্যাটাগরি</label>
-            <div class="grid grid-cols-3 gap-2">
-                <button @click="category = 'upper_body'" :class="category === 'upper_body' ? 'bg-indigo-600 text-white border-indigo-500' : 'bg-slate-800 text-slate-400 border-slate-700'" class="py-2.5 px-3 rounded-xl border text-xs font-medium transition">টপস/শার্ট</button>
-                <button @click="category = 'lower_body'" :class="category === 'lower_body' ? 'bg-indigo-600 text-white border-indigo-500' : 'bg-slate-800 text-slate-400 border-slate-700'" class="py-2.5 px-3 rounded-xl border text-xs font-medium transition">প্যান্ট/বটমস</button>
-                <button @click="category = 'dresses'" :class="category === 'dresses' ? 'bg-indigo-600 text-white border-indigo-500' : 'bg-slate-800 text-slate-400 border-slate-700'" class="py-2.5 px-3 rounded-xl border text-xs font-medium transition">ফুল ড্রেস</button>
-            </div>
-        </div>
-
-        <!-- Result / Output Display Section -->
-        <div x-show="resultImgSrc || isLoading" class="space-y-2 pt-2">
-            <label class="block text-sm font-semibold text-indigo-400">AI জেনারেটেড রেজাল্ট</label>
-            <div class="relative bg-slate-800 border border-slate-700 rounded-2xl p-2 flex items-center justify-center min-h-[250px]">
-                
-                <!-- Loading State -->
-                <div x-show="isLoading" class="flex flex-col items-center justify-center p-6 space-y-3">
-                    <div class="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-                    <p class="text-sm text-slate-300 font-medium animate-pulse">AI আপনার পোশাক ফিটিং করছে...</p>
-                    <p class="text-xs text-slate-500">সাধারণত ১০-২০ সেকেন্ড সময় লাগে</p>
-                </div>
-
-                <!-- Generated Image -->
-                <template x-if="resultImgSrc && !isLoading">
-                    <div class="space-y-3 w-full">
-                        <img :src="resultImgSrc" class="w-full h-80 object-cover rounded-xl shadow-lg">
-                        <a :href="resultImgSrc" download="ai-outfit.jpg" target="_blank" class="w-full py-2.5 bg-slate-700 hover:bg-slate-600 rounded-xl text-xs font-medium flex items-center justify-center space-x-2 space-x-reverse transition">
-                            <i data-lucide="download" class="w-4 h-4"></i>
-                            <span>ছবি ডাউনলোড করুন</span>
-                        </a>
-                    </div>
-                </template>
-            </div>
-        </div>
-
-    </main>
-
-    <!-- Bottom Action Button Container -->
-    <div class="p-4 bg-slate-900/90 border-t border-slate-800 sticky bottom-0 z-50">
-        <button @click="generateOutfit()" :disabled="isLoading || !personImgSrc || !garmentImgSrc"
-                class="w-full py-3.5 px-4 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 disabled:opacity-50 text-white rounded-xl font-medium shadow-lg flex items-center justify-center space-x-2 space-x-reverse transition">
-            <i data-lucide="wand-2" class="w-5 h-5"></i>
-            <span>আউটফিট জেনারেট করুন</span>
-        </button>
+    <!-- Settings Panel (Collapsible) -->
+    <div id="settingsPanel" class="hidden mb-6 bg-slate-950/70 border border-slate-800 p-4 rounded-2xl space-y-3">
+      <label class="block text-xs font-medium text-slate-300">Replicate API Token:</label>
+      <div class="flex space-x-2">
+        <input type="password" id="apiTokenInput" placeholder="r8_..." class="flex-1 bg-slate-900 border border-slate-700 text-slate-100 text-sm rounded-xl px-3 py-2.5 focus:outline-none focus:border-indigo-500 transition-all" />
+        <button id="saveTokenBtn" class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-sm px-4 py-2.5 rounded-xl transition-all shadow-md">Save</button>
+      </div>
+      <p class="text-[10px] text-slate-400">replicate.com থেকে আপনার API Key সংগ্রহ করুন। এটি ব্রাউজারে সুরক্ষিত থাকবে।</p>
     </div>
 
-    <!-- Application Logic Script -->
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            lucide.createIcons();
+    <!-- Upload Section 1: Person Image -->
+    <div class="space-y-2 mb-5">
+      <div class="flex justify-between items-center text-sm font-semibold text-slate-200">
+        <span>১. আপনার ছবি (Person Image)</span>
+        <span class="text-[10px] text-indigo-400 font-normal">*ফুল বা হাফ বডি ছবি</span>
+      </div>
+      <div id="personBox" class="border-2 border-dashed border-slate-800 hover:border-indigo-500/50 bg-slate-950/50 rounded-2xl p-4 text-center cursor-pointer transition-all relative group overflow-hidden min-h-[160px] flex flex-col items-center justify-center">
+        <input type="file" id="personInput" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer z-10" />
+        <div id="personPlaceholder" class="space-y-2">
+          <i class="fa-solid fa-user-tie text-3xl text-slate-600 group-hover:text-indigo-400 transition-colors"></i>
+          <p class="text-xs text-slate-400">ছবি সিলেক্ট করতে এখানে ট্যাপ করুন</p>
+        </div>
+        <img id="personPreview" class="hidden w-full h-44 object-contain rounded-xl" />
+      </div>
+    </div>
+
+    <!-- Upload Section 2: Garment Image -->
+    <div class="space-y-2 mb-5">
+      <div class="flex justify-between items-center text-sm font-semibold text-slate-200">
+        <span>২. পোশাকের ছবি (Garment Image)</span>
+        <span class="text-[10px] text-indigo-400 font-normal">*যে পোশাকটি পরতে চান</span>
+      </div>
+      <div id="garmentBox" class="border-2 border-dashed border-slate-800 hover:border-indigo-500/50 bg-slate-950/50 rounded-2xl p-4 text-center cursor-pointer transition-all relative group overflow-hidden min-h-[160px] flex flex-col items-center justify-center">
+        <input type="file" id="garmentInput" accept="image/*" class="absolute inset-0 opacity-0 cursor-pointer z-10" />
+        <div id="garmentPlaceholder" class="space-y-2">
+          <i class="fa-solid fa-vest-patches text-3xl text-slate-600 group-hover:text-indigo-400 transition-colors"></i>
+          <p class="text-xs text-slate-400">পোশাকের ছবি সিলেক্ট করুন</p>
+        </div>
+        <img id="garmentPreview" class="hidden w-full h-44 object-contain rounded-xl" />
+      </div>
+    </div>
+
+    <!-- Garment Category Selector -->
+    <div class="space-y-2 mb-6">
+      <label class="block text-xs font-semibold text-slate-300">পোশাকের ক্যাটাগরি</label>
+      <div class="grid grid-cols-3 gap-2">
+        <button type="button" class="category-btn active bg-indigo-600 border border-indigo-500 text-white text-xs py-2 rounded-xl font-medium transition-all" data-category="upper_body">টপস/শার্ট</button>
+        <button type="button" class="category-btn bg-slate-950 border border-slate-800 text-slate-400 text-xs py-2 rounded-xl font-medium transition-all hover:bg-slate-800" data-category="lower_body">প্যান্ট/বটমস</button>
+        <button type="button" class="category-btn bg-slate-950 border border-slate-800 text-slate-400 text-xs py-2 rounded-xl font-medium transition-all hover:bg-slate-800" data-category="dresses">ফুল ড্রেস</button>
+      </div>
+    </div>
+
+    <!-- Action Button -->
+    <button id="generateBtn" class="w-full bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white font-semibold py-3.5 px-4 rounded-2xl shadow-lg shadow-indigo-600/30 flex items-center justify-center space-x-2 transition-all active:scale-[0.98]">
+      <i class="fa-solid fa-wand-magic-sparkles"></i>
+      <span>আউটফিট জেনারেট করুন</span>
+    </button>
+
+    <!-- Result & Loader Area -->
+    <div id="resultSection" class="hidden mt-6 space-y-3">
+      <p class="text-xs font-semibold text-slate-300">AI জেনারেটেড রেজাল্ট</p>
+      
+      <!-- Loading Spinner Box -->
+      <div id="loadingBox" class="bg-slate-950/70 border border-slate-800 rounded-2xl p-8 flex flex-col items-center justify-center space-y-3">
+        <div class="w-10 h-10 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin"></div>
+        <p class="text-xs text-slate-300 font-medium animate-pulse">AI আপনার পোশাক ফিটিং করছে...</p>
+        <p class="text-[10px] text-slate-500">সাধারণত ১৫-২০ সেকেন্ড সময় লাগে</p>
+      </div>
+
+      <!-- Result Display Container -->
+      <div id="resultBox" class="hidden relative group overflow-hidden rounded-2xl border border-slate-800 bg-slate-950">
+        <img id="resultImage" class="w-full h-auto object-cover rounded-2xl" />
+        <a id="downloadLink" href="#" download="tryon-result.png" class="absolute bottom-3 right-3 bg-slate-900/80 hover:bg-slate-900 text-white text-xs px-3 py-2 rounded-xl backdrop-blur-md border border-slate-700 flex items-center space-x-1.5 transition-all">
+          <i class="fa-solid fa-download"></i>
+          <span>ডাউনলোড</span>
+        </a>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // LocalStorage Key
+    const TOKEN_KEY = 'replicate_api_token';
+
+    // DOM Elements
+    const toggleSettings = document.getElementById('toggleSettings');
+    const settingsPanel = document.getElementById('settingsPanel');
+    const apiTokenInput = document.getElementById('apiTokenInput');
+    const saveTokenBtn = document.getElementById('saveTokenBtn');
+
+    const personInput = document.getElementById('personInput');
+    const personPreview = document.getElementById('personPreview');
+    const personPlaceholder = document.getElementById('personPlaceholder');
+
+    const garmentInput = document.getElementById('garmentInput');
+    const garmentPreview = document.getElementById('garmentPreview');
+    const garmentPlaceholder = document.getElementById('garmentPlaceholder');
+
+    const categoryBtns = document.querySelectorAll('.category-btn');
+    const generateBtn = document.getElementById('generateBtn');
+
+    const resultSection = document.getElementById('resultSection');
+    const loadingBox = document.getElementById('loadingBox');
+    const resultBox = document.getElementById('resultBox');
+    const resultImage = document.getElementById('resultImage');
+    const downloadLink = document.getElementById('downloadLink');
+
+    let selectedCategory = 'upper_body';
+
+    // Initialize Token from LocalStorage
+    const savedToken = localStorage.getItem(TOKEN_KEY);
+    if (savedToken) {
+      apiTokenInput.value = savedToken;
+    } else {
+      settingsPanel.classList.remove('hidden');
+    }
+
+    // Toggle Settings Panel
+    toggleSettings.addEventListener('click', () => {
+      settingsPanel.classList.toggle('hidden');
+    });
+
+    // Save Token
+    saveTokenBtn.addEventListener('click', () => {
+      const token = apiTokenInput.value.trim();
+      if (!token) {
+        alert('অনুগ্রহ করে একটি সঠিক API Token প্রদান করুন!');
+        return;
+      }
+      localStorage.setItem(TOKEN_KEY, token);
+      alert('API Token সফলভাবে সেভ করা হয়েছে!');
+      settingsPanel.classList.add('hidden');
+    });
+
+    // Handle Image Preview
+    function setupImagePreview(input, preview, placeholder) {
+      input.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            preview.src = event.target.result;
+            preview.classList.remove('hidden');
+            placeholder.classList.add('hidden');
+          };
+          reader.readAsDataURL(file);
+        }
+      });
+    }
+
+    setupImagePreview(personInput, personPreview, personPlaceholder);
+    setupImagePreview(garmentInput, garmentPreview, garmentPlaceholder);
+
+    // Category Selector
+    categoryBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        categoryBtns.forEach(b => {
+          b.classList.remove('bg-indigo-600', 'border-indigo-500', 'text-white');
+          b.classList.add('bg-slate-950', 'border-slate-800', 'text-slate-400');
+        });
+        btn.classList.remove('bg-slate-950', 'border-slate-800', 'text-slate-400');
+        btn.classList.add('bg-indigo-600', 'border-indigo-500', 'text-white');
+        selectedCategory = btn.dataset.category;
+      });
+    });
+
+    // Helper: Convert File to Base64 Data URL
+    function fileToDataURL(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = error => reject(error);
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // Main Try-On Trigger
+    generateBtn.addEventListener('click', async () => {
+      const token = localStorage.getItem(TOKEN_KEY);
+      if (!token) {
+        alert('অনুগ্রহ করে সেটিংস (⚙️) বাটনে ক্লিক করে Replicate API Token সেভ করুন!');
+        settingsPanel.classList.remove('hidden');
+        return;
+      }
+
+      const personFile = personInput.files[0];
+      const garmentFile = garmentInput.files[0];
+
+      if (!personFile || !garmentFile) {
+        alert('অনুগ্রহ করে আপনার ছবি এবং পোশাকের ছবি দুটিই আপলোড করুন!');
+        return;
+      }
+
+      // UI State: Loading
+      resultSection.classList.remove('hidden');
+      loadingBox.classList.remove('hidden');
+      resultBox.classList.add('hidden');
+      generateBtn.disabled = true;
+      generateBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+      try {
+        const personBase64 = await fileToDataURL(personFile);
+        const garmentBase64 = await fileToDataURL(garmentFile);
+
+        // CORS Proxy URL to fix "Failed to fetch" errors
+        const corsProxy = 'https://corsproxy.io/?';
+        const apiEndpoint = 'https://api.replicate.com/v1/predictions';
+
+        // Step 1: Create Prediction
+        const response = await fetch(corsProxy + apiEndpoint, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            version: "c87d920b266dbb70e7d08f6417a258a13009c8a634a7d3914169d427b0b0537e", // idm-vton model version
+            input: {
+              human_img: personBase64,
+              garm_img: garmentBase64,
+              garment_des: selectedCategory,
+              is_checked: true,
+              is_checked_crop: false,
+              denoise_steps: 30,
+              seed: 42
+            }
+          })
         });
 
-        function tryOnApp() {
-            return {
-                apiKey: localStorage.getItem('replicate_api_key') || '',
-                openSettings: false,
-                personImgSrc: null,
-                garmentImgSrc: null,
-                personFile: null,
-                garmentFile: null,
-                category: 'upper_body',
-                isLoading: false,
-                resultImgSrc: null,
-
-                saveApiKey() {
-                    localStorage.setItem('replicate_api_key', this.apiKey);
-                    this.openSettings = false;
-                    alert('API Key সফলভাবে সেভ করা হয়েছে!');
-                },
-
-                handleImageUpload(event, type) {
-                    const file = event.target.files[0];
-                    if (!file) return;
-
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        if (type === 'person') {
-                            this.personImgSrc = e.target.result;
-                            this.personFile = file;
-                        } else {
-                            this.garmentImgSrc = e.target.result;
-                            this.garmentFile = file;
-                        }
-                    };
-                    reader.readAsDataURL(file);
-                },
-
-                async generateOutfit() {
-                    if (!this.apiKey) {
-                        this.openSettings = true;
-                        alert('দয়া করে প্রথমে আপনার Replicate API Key প্রদান করুন।');
-                        return;
-                    }
-
-                    this.isLoading = true;
-                    this.resultImgSrc = null;
-
-                    try {
-                        // 1. Upload files to temporary cloud or convert to base64
-                        const personBase64 = this.personImgSrc;
-                        const garmentBase64 = this.garmentImgSrc;
-
-                        // 2. Call Replicate IDM-VTON API
-                        const response = await fetch("https://api.replicate.com/v1/predictions", {
-                            method: "POST",
-                            headers: {
-                                "Authorization": `Bearer ${this.apiKey}`,
-                                "Content-Type": "application/json"
-                            },
-                            body: JSON.stringify({
-                                version: "c87eec4a51a6e88002cead08266023cb22201d44c9f187a5089f3680e6e7368d",
-                                input: {
-                                    human_img: personBase64,
-                                    garm_img: garmentBase64,
-                                    category: this.category,
-                                    crop: false,
-                                    steps: 30
-                                }
-                            })
-                        });
-
-                        const data = await response.json();
-
-                        if (data.error) {
-                            throw new Error(data.error);
-                        }
-
-                        // Poll the prediction result
-                        this.pollPrediction(data.urls.get);
-
-                    } catch (err) {
-                        alert("ত্রুটি ঘটেছে: " + err.message);
-                        this.isLoading = false;
-                    }
-                },
-
-                async pollPrediction(getUrl) {
-                    const interval = setInterval(async () => {
-                        try {
-                            const res = await fetch(getUrl, {
-                                headers: {
-                                    "Authorization": `Bearer ${this.apiKey}`
-                                }
-                            });
-                            const result = await res.json();
-
-                            if (result.status === "succeeded") {
-                                clearInterval(interval);
-                                this.resultImgSrc = Array.isArray(result.output) ? result.output[0] : result.output;
-                                this.isLoading = false;
-                            } else if (result.status === "failed") {
-                                clearInterval(interval);
-                                alert("AI প্রসেসিং ব্যর্থ হয়েছে। আবার চেষ্টা করুন।");
-                                this.isLoading = false;
-                            }
-                        } catch (e) {
-                            clearInterval(interval);
-                            this.isLoading = false;
-                        }
-                    }, 3000);
-                }
-            }
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.detail || errorData.error || `HTTP error! status: ${response.status}`);
         }
-    </script>
+
+        let prediction = await response.json();
+
+        // Step 2: Poll for Result Status
+        while (prediction.status !== 'succeeded' && prediction.status !== 'failed') {
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          
+          const pollUrl = corsProxy + prediction.urls.get;
+          const pollResponse = await fetch(pollUrl, {
+            headers: {
+              'Authorization': `Bearer ${token}`
+            }
+          });
+
+          if (!pollResponse.ok) {
+            throw new Error(`Polling failed with status: ${pollResponse.status}`);
+          }
+
+          prediction = await pollResponse.json();
+        }
+
+        if (prediction.status === 'succeeded' && prediction.output) {
+          const outputUrl = Array.isArray(prediction.output) ? prediction.output[0] : prediction.output;
+          resultImage.src = outputUrl;
+          downloadLink.href = outputUrl;
+
+          loadingBox.classList.add('hidden');
+          resultBox.classList.remove('hidden');
+        } else {
+          throw new Error(prediction.error || 'AI ছবি জেনারেট করতে ব্যর্থ হয়েছে!');
+        }
+
+      } catch (error) {
+        console.error('Try-On Error:', error);
+        alert('ত্রুটি ঘটেছে: ' + error.message);
+        resultSection.classList.add('hidden');
+      } finally {
+        generateBtn.disabled = false;
+        generateBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+      }
+    });
+  </script>
 </body>
 </html>
